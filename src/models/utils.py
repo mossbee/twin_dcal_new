@@ -1,4 +1,10 @@
-importdef attention_rollout(attentions: List[torch.Tensor], discard_ratio: float = 0.9) -> torch.Tensor:
+import torch
+import torch.nn as nn
+import numpy as np
+from typing import List, Tuple, Optional
+
+
+def attention_rollout(attentions: List[torch.Tensor], discard_ratio: float = 0.9) -> torch.Tensor:
     """
     Compute attention rollout following Abnar & Zuidema.
     
@@ -13,14 +19,14 @@ importdef attention_rollout(attentions: List[torch.Tensor], discard_ratio: float
         raise ValueError("attentions list is empty. Cannot compute attention rollout.")
     
     batch_size = attentions[0].size(0)
-    num_tokens = attentions[0].size(-1) torch.nn as nn
-import numpy as np
-from typing import List, Tuple, Optional
-
-
-def attention_rollout(attentions: List[torch.Tensor], discard_ratio: float = 0.9) -> torch.Tensor:
-    """
-    Compute attention rollout to get accumulated attention scores across layers.
+    num_tokens = attentions[0].size(-1)
+    
+    # Average attention across heads for each layer
+    averaged_attentions = []
+    for attention in attentions:
+        # attention: [batch, heads, tokens, tokens]
+        avg_attention = attention.mean(dim=1)  # [batch, tokens, tokens]
+        averaged_attentions.append(avg_attention)
     
     Args:
         attentions: List of attention matrices from each layer [batch, heads, tokens, tokens]
