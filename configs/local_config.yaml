@@ -1,0 +1,17 @@
+# Local server configuration
+data:
+  dataset_root: "/path/to/local/dataset"  # Update this path
+  batch_size: 32
+  num_workers: 8
+
+training:
+  device: "cuda"
+  distributed: true
+  world_size: 2
+  epochs: 100
+
+tracking:
+  method: "mlflow"
+  mlflow_uri: "http://localhost:5000"
+  project_name: "twin_dcal_local"
+  experiment_name: "baseline_local"

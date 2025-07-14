@@ -1,0 +1,18 @@
+# Kaggle configuration
+data:
+  dataset_root: "/kaggle/input/nd-twin/ND_TWIN_Dataset_224/ND_TWIN_Dataset_224"
+  batch_size: 16
+  num_workers: 2
+
+training:
+  device: "cuda"
+  distributed: false
+  world_size: 1
+  epochs: 50  # Reduced for 12h limit
+  save_every: 1  # Save every epoch for resuming
+
+tracking:
+  method: "wandb"
+  project_name: "twin_dcal_kaggle"
+  experiment_name: "baseline_kaggle"
+  entity: "hunchoquavodb-hanoi-university-of-science-and-technology"
