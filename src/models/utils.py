@@ -1,5 +1,19 @@
-import torch
-import torch.nn as nn
+importdef attention_rollout(attentions: List[torch.Tensor], discard_ratio: float = 0.9) -> torch.Tensor:
+    """
+    Compute attention rollout following Abnar & Zuidema.
+    
+    Args:
+        attentions: List of attention matrices from each layer [batch, heads, tokens, tokens]
+        discard_ratio: Ratio of attention to keep (higher = more focused)
+    
+    Returns:
+        rollout: Accumulated attention scores [batch, tokens, tokens]
+    """
+    if not attentions:
+        raise ValueError("attentions list is empty. Cannot compute attention rollout.")
+    
+    batch_size = attentions[0].size(0)
+    num_tokens = attentions[0].size(-1) torch.nn as nn
 import numpy as np
 from typing import List, Tuple, Optional
 
