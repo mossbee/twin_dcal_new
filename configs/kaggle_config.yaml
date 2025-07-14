@@ -1,18 +1,125 @@
-# Kaggle configuration
+# Kaggle configuration - inherits from base config with overrides
+# Base configuration for Twin DCAL - All Phases Complete
+# Phase 1: Core Infrastructure ✅
+# Phase 2: DCAL Components ✅  
+# Phase 3: Advanced Features ✅
+
+model:
+  name: "dcal_deit_tiny"
+  backbone: "deit_tiny_patch16_224"
+  image_size: 224
+  patch_size: 16
+  num_classes: 356  # Number of persons in dataset
+  embed_dim: 192    # DeiT-Tiny embedding dimension
+  depth: 12         # Number of transformer blocks
+  num_heads: 3      # Number of attention heads
+  mlp_ratio: 4.0
+  dropout: 0.0
+  attention_dropout: 0.0
+  
+  # DCAL specific (Phase 2)
+  use_glca: true
+  use_pwca: true
+  glca_blocks: 1      # M=1 (last layer only)
+  pwca_blocks: 12     # T=12 (all layers)
+  local_query_ratio: 0.3  # R=30%
+
 data:
   dataset_root: "/kaggle/input/nd-twin/ND_TWIN_Dataset_224/ND_TWIN_Dataset_224"
+  train_info: "data/train_dataset_infor.json"
+  train_pairs: "data/train_twin_pairs.json"
+  test_info: "data/test_dataset_infor.json"
+  test_pairs: "data/test_twin_pairs.json"
+  
+  # Data augmentation
+  augmentation:
+    horizontal_flip: 0.5
+    rotation: 15
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    random_erasing: 0.25
+  
+  # Data loading - Kaggle optimized
   batch_size: 16
   num_workers: 2
+  pin_memory: true
 
 training:
-  device: "cuda"
-  distributed: false
-  world_size: 1
+  # Optimizer
+  optimizer: "adam"
+  learning_rate: 5e-4
+  weight_decay: 0.05
+  
+  # Scheduler
+  scheduler: "cosine"
+  warmup_epochs: 3  # Reduced for Kaggle
+  
+  # Training parameters - Kaggle optimized
   epochs: 50  # Reduced for 12h limit
-  save_every: 1  # Save every epoch for resuming
+  accumulation_steps: 1
+  gradient_clip: 1.0
+  
+  # Loss
+  loss_type: "triplet"
+  triplet_margin: 0.3
+  hard_mining: true
+  
+  # Dynamic loss weights
+  use_dynamic_weights: true
+  
+  # Checkpointing - Save frequently for Kaggle
+  save_every: 1
+  keep_last: 3  # Keep fewer checkpoints for Kaggle
 
+evaluation:
+  metrics:
+    - "eer"
+    - "tar_at_far"
+    - "auc"
+  
+  # TAR@FAR thresholds
+  far_thresholds: [0.001, 0.01, 0.1]
+
+# Environment specific settings - Kaggle
+device: "cuda"
+distributed: false
+local_rank: 0
+world_size: 1
+
+# Tracking - Kaggle with WandB
 tracking:
   method: "wandb"
   project_name: "twin_dcal_kaggle"
   experiment_name: "baseline_kaggle"
   entity: "hunchoquavodb-hanoi-university-of-science-and-technology"
+
+# Phase 3: Advanced Features Configuration
+advanced:
+  # Model ensemble
+  ensemble:
+    n_models: 3
+    equal_weights: true
+    
+  # Test-time augmentation
+  tta:
+    enabled: false
+    n_augmentations: 8
+    use_horizontal_flip: true
+    
+  # Hyperparameter optimization
+  hyperopt:
+    n_trials: 50  # Reduced for Kaggle
+    study_name: "dcal_optimization_kaggle"
+    optimize_architecture: true
+    optimize_training: true
+    optimize_augmentation: true
+    
+  # Extended evaluation
+  evaluation:
+    save_plots: true
+    embedding_visualization: "tsne"  # "tsne", "umap", or "both"
+    similarity_analysis: true
+    performance_profiling: true

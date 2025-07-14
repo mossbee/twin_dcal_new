@@ -19,13 +19,15 @@ class TwinFaceTransforms:
     @staticmethod
     def get_train_transforms(config):
         """Get training transforms."""
-        augmentation = config['data']['augmentation']
+        # Handle missing augmentation config
+        augmentation = config.get('data', {}).get('augmentation', {})
+        image_size = config.get('model', {}).get('image_size', 224)
         
         transforms_list = [
-            transforms.Resize((config['model']['image_size'], config['model']['image_size'])),
+            transforms.Resize((image_size, image_size)),
         ]
         
-        # Add augmentations
+        # Add augmentations if specified
         if augmentation.get('horizontal_flip', 0) > 0:
             transforms_list.append(
                 transforms.RandomHorizontalFlip(p=augmentation['horizontal_flip'])
@@ -67,8 +69,10 @@ class TwinFaceTransforms:
     @staticmethod
     def get_val_transforms(config):
         """Get validation transforms."""
+        image_size = config.get('model', {}).get('image_size', 224)
+        
         return transforms.Compose([
-            transforms.Resize((config['model']['image_size'], config['model']['image_size'])),
+            transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],  # ImageNet stats
