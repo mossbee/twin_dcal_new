@@ -78,8 +78,20 @@ class Trainer:
     def _create_optimizer(self) -> torch.optim.Optimizer:
         """Create optimizer from config."""
         optimizer_name = self.config.get('training.optimizer', 'adam').lower()
-        lr = self.config.get('training.learning_rate', 5e-4)
-        weight_decay = self.config.get('training.weight_decay', 0.05)
+        
+        # Ensure numeric values are properly typed with robust conversion
+        lr_raw = self.config.get('training.learning_rate', 5e-4)
+        wd_raw = self.config.get('training.weight_decay', 0.05)
+        
+        try:
+            lr = float(lr_raw)
+            weight_decay = float(wd_raw)
+            print(f"Optimizer config: lr={lr} (from {lr_raw}), weight_decay={weight_decay} (from {wd_raw})")
+        except (ValueError, TypeError) as e:
+            print(f"Error converting optimizer parameters: {e}")
+            print(f"lr_raw: {lr_raw} (type: {type(lr_raw)})")
+            print(f"wd_raw: {wd_raw} (type: {type(wd_raw)})")
+            raise
         
         if optimizer_name == 'adam':
             return torch.optim.Adam(
@@ -94,11 +106,12 @@ class Trainer:
                 weight_decay=weight_decay
             )
         elif optimizer_name == 'sgd':
+            momentum = float(self.config.get('training.momentum', 0.9))
             return torch.optim.SGD(
                 self.model.parameters(),
                 lr=lr,
                 weight_decay=weight_decay,
-                momentum=0.9
+                momentum=momentum
             )
         else:
             raise ValueError(f"Unknown optimizer: {optimizer_name}")
