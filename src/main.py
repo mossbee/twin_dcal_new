@@ -158,7 +158,7 @@ def main():
     
     # Create data loaders
     print("Creating data loaders...")
-    train_loader, val_loader = create_data_loaders(
+    train_loader, val_loader, test_loader = create_data_loaders(
         config.to_dict(),
         train_transform=train_transform,
         val_transform=val_transform
@@ -166,6 +166,7 @@ def main():
     
     print(f"Training samples: {len(train_loader.dataset)}")
     print(f"Validation samples: {len(val_loader.dataset)}")
+    print(f"Test samples: {len(test_loader.dataset)}")
     
     # Create model
     model = create_model(config)
