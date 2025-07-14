@@ -4,7 +4,11 @@ import torch.nn.functional as F
 from typing import Tuple, Optional, List
 from einops import rearrange
 
-from .utils import AttentionRollout, extract_patch_embeddings
+# Handle both relative and absolute imports
+try:
+    from .utils import AttentionRollout, extract_patch_embeddings
+except ImportError:
+    from utils import AttentionRollout, extract_patch_embeddings
 
 
 class MultiHeadCrossAttention(nn.Module):
@@ -265,7 +269,10 @@ class DCALBlock(nn.Module):
         self.use_pwca = use_pwca
         
         # Self attention (always present)
-        from .backbone import MultiHeadAttention, MLP
+        try:
+            from .backbone import MultiHeadAttention, MLP
+        except ImportError:
+            from backbone import MultiHeadAttention, MLP
         
         self.norm1 = nn.LayerNorm(dim)
         self.self_attn = MultiHeadAttention(

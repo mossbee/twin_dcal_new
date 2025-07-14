@@ -10,15 +10,30 @@ import torch
 from pathlib import Path
 
 # Add src to path
-sys.path.append(str(Path(__file__).parent))
+current_dir = Path(__file__).parent
+src_dir = current_dir
+sys.path.insert(0, str(src_dir))
 
-from utils.config import Config, load_config
-from utils.tracking import create_tracker
-from data.dataset import create_data_loaders
-from data.transforms import TwinFaceTransforms
-from models.backbone import deit_tiny_patch16_224
-from models.dcal_model import create_dcal_model
-from training.trainer import Trainer
+# Handle both relative and absolute imports
+try:
+    from utils.config import Config, load_config
+    from utils.tracking import create_tracker
+    from data.dataset import create_data_loaders
+    from data.transforms import TwinFaceTransforms
+    from models.backbone import deit_tiny_patch16_224
+    from models.dcal_model import create_dcal_model
+    from training.trainer import Trainer
+except ImportError as e:
+    print(f"Import error: {e}")
+    # Try alternative import paths
+    sys.path.insert(0, str(current_dir.parent))
+    from src.utils.config import Config, load_config
+    from src.utils.tracking import create_tracker
+    from src.data.dataset import create_data_loaders
+    from src.data.transforms import TwinFaceTransforms
+    from src.models.backbone import deit_tiny_patch16_224
+    from src.models.dcal_model import create_dcal_model
+    from src.training.trainer import Trainer
 
 
 def parse_args():

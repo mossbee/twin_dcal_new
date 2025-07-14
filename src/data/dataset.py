@@ -190,8 +190,8 @@ def create_data_loaders(
     config: Dict,
     train_transform=None,
     val_transform=None
-) -> Tuple[DataLoader, DataLoader]:
-    """Create train and validation data loaders."""
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """Create train, validation, and test data loaders."""
     
     # Create datasets
     train_dataset = TwinFaceDataset(
@@ -231,7 +231,16 @@ def create_data_loaders(
         pin_memory=config['data']['pin_memory']
     )
     
-    return train_loader, val_loader
+    # Use same test dataset for now (in practice you'd have separate test set)
+    test_loader = DataLoader(
+        val_dataset,
+        batch_size=config['data']['batch_size'],
+        shuffle=False,
+        num_workers=config['data']['num_workers'],
+        pin_memory=config['data']['pin_memory']
+    )
+    
+    return train_loader, val_loader, test_loader
 
 
 def create_pair_loader(

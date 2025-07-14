@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from typing import Dict, Optional, Tuple
 import torch
@@ -6,12 +7,22 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from ..models.backbone import VisionTransformer
-from ..models.dcal_model import DCALModel
-from ..training.losses import CombinedLoss
-from ..training.metrics import VerificationEvaluator
-from ..utils.tracking import ExperimentTracker
-from ..utils.config import Config
+# Handle both relative and absolute imports
+try:
+    from ..models.backbone import VisionTransformer
+    from ..models.dcal_model import DCALModel
+    from ..training.losses import CombinedLoss
+    from ..training.metrics import VerificationEvaluator
+    from ..utils.tracking import ExperimentTracker
+    from ..utils.config import Config
+except ImportError:
+    # Fallback for when running as script
+    from models.backbone import VisionTransformer
+    from models.dcal_model import DCALModel
+    from training.losses import CombinedLoss
+    from training.metrics import VerificationEvaluator
+    from utils.tracking import ExperimentTracker
+    from utils.config import Config
 
 
 class Trainer:

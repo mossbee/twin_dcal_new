@@ -2,8 +2,13 @@ import torch
 import torch.nn as nn
 from typing import List, Optional, Tuple, Dict
 
-from .backbone import VisionTransformer, PatchEmbedding
-from .attention import DCALBlock
+# Handle both relative and absolute imports
+try:
+    from .backbone import VisionTransformer, PatchEmbedding
+    from .attention import DCALBlock
+except ImportError:
+    from backbone import VisionTransformer, PatchEmbedding
+    from attention import DCALBlock
 
 
 class DCALModel(nn.Module):
