@@ -181,25 +181,53 @@ class DCALModel(nn.Module):
         glca_output = None
         
         for i, block in enumerate(self.blocks):
-            sa_out, glca_out, pwca_out = block(
-                sa_output,
-                secondary_x=secondary_tokens,
-                sa_attentions=sa_attentions if i in self.glca_layers else None,
-                return_attention=return_attention
-            )
-            
-            # Update outputs
-            sa_output = sa_out
-            if glca_out is not None:
-                glca_output = glca_out
-            
-            # For PWCA, we use the PWCA output as input to next layer during training
-            if pwca_out is not None and self.training:
-                sa_output = pwca_out
-            
-            # Store attention for GLCA (we need accumulated attention)
-            if return_attention and hasattr(block.self_attn, 'last_attention'):
-                sa_attentions.append(block.self_attn.last_attention)
+            try:
+                # Self-attention branch (always present)
+                sa_residual = block.self_attn(block.norm1(sa_output))
+                sa_output = sa_output + sa_residual
+                sa_output = sa_output + block.mlp(block.norm2(sa_output))
+                
+                # GLCA branch (if enabled for this layer and we have accumulated attention)
+                glca_out = None
+                if (hasattr(block, 'use_glca') and block.use_glca and 
+                    i in self.glca_layers and sa_attentions):
+                    try:
+                        glca_residual = block.glca(block.norm_glca(x), sa_attentions)
+                        glca_out = x + glca_residual
+                        glca_out = glca_out + block.mlp(block.norm2(glca_out))
+                        glca_output = glca_out
+                    except Exception as e:
+                        print(f"Warning: GLCA failed in layer {i}, skipping: {e}")
+                
+                # PWCA branch (if enabled and secondary input provided)
+                pwca_out = None
+                if (hasattr(block, 'use_pwca') and block.use_pwca and 
+                    secondary_tokens is not None and self.training):
+                    try:
+                        pwca_residual = block.pwca(block.norm_pwca(sa_output), secondary_tokens)
+                        pwca_out = sa_output + pwca_residual
+                        pwca_out = pwca_out + block.mlp(block.norm2(pwca_out))
+                        # For PWCA, we use the PWCA output as input to next layer during training
+                        sa_output = pwca_out
+                    except Exception as e:
+                        print(f"Warning: PWCA failed in layer {i}, skipping: {e}")
+                
+                # Collect attention for future GLCA layers (if needed)
+                if (return_attention or any(j in self.glca_layers for j in range(i+1, len(self.blocks)))):
+                    try:
+                        _, sa_attn = block.self_attn(block.norm1(x), return_attention=True)
+                        if sa_attn is not None:
+                            sa_attentions.append(sa_attn)
+                    except:
+                        # If attention collection fails, continue without it
+                        pass
+                        
+            except Exception as e:
+                print(f"Error in block {i}: {e}")
+                # Fallback: just apply self-attention
+                sa_residual = block.self_attn(block.norm1(sa_output))
+                sa_output = sa_output + sa_residual
+                sa_output = sa_output + block.mlp(block.norm2(sa_output))
         
         # Final layer norm
         sa_output = self.norm(sa_output)

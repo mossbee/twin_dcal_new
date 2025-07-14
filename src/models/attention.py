@@ -331,11 +331,16 @@ class DCALBlock(nn.Module):
         # GLCA branch (if enabled)
         glca_output = None
         if self.use_glca and sa_attentions is not None:
-            # Use attention from SA branch for rollout
-            current_attentions = sa_attentions + [sa_attn] if sa_attn is not None else sa_attentions
-            glca_residual = self.glca(self.norm_glca(x), current_attentions)
-            glca_output = x + glca_residual
-            glca_output = glca_output + self.mlp(self.norm2(glca_output))
+            # Build current attentions list, filtering out None values
+            current_attentions = [attn for attn in sa_attentions if attn is not None]
+            if sa_attn is not None:
+                current_attentions.append(sa_attn)
+            
+            # Only proceed if we have valid attention matrices
+            if current_attentions:
+                glca_residual = self.glca(self.norm_glca(x), current_attentions)
+                glca_output = x + glca_residual
+                glca_output = glca_output + self.mlp(self.norm2(glca_output))
         
         # PWCA branch (if enabled and secondary input provided)
         pwca_output = None
