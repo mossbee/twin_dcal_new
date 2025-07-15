@@ -115,10 +115,11 @@ class AttentionRollout(nn.Module):
         """
         # Handle empty attention list (early layers might not have accumulated attention yet)
         if not attentions:
-            # Create dummy outputs - this should be handled gracefully by the calling code
-            # We'll use a default configuration assuming ViT-like architecture
+            # We need to get the actual batch size and device from somewhere
+            # This is a fallback that should ideally not be used
+            print("Warning: Empty attention list in AttentionRollout, using fallback")
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            batch_size = 1  # Will be overridden when real data flows through
+            batch_size = 1  # Will be corrected when real data flows through
             num_tokens = 197  # Default for 224x224 image (196 patches + 1 CLS)
             
             # Create identity rollout as fallback

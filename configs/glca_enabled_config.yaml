@@ -1,0 +1,106 @@
+# Updated Kaggle config with properly enabled GLCA
+model:
+  backbone: "deit_tiny_patch16_224"
+  image_size: 224
+  pretrained: true
+  num_classes: 0  # Feature extraction mode
+  
+  # Model architecture
+  num_heads: 3      # Number of attention heads
+  mlp_ratio: 4.0
+  dropout: 0.0
+  attention_dropout: 0.0
+  
+  # DCAL specific (Phase 2) - GLCA ENABLED
+  use_glca: true        # ← This enables GLCA
+  use_pwca: true        # ← This enables PWCA
+  glca_blocks: 1        # M=1 (only last layer has GLCA)
+  pwca_blocks: 12       # T=12 (all layers have PWCA)
+  local_query_ratio: 0.3  # R=30% (select 30% of patches as local queries)
+
+data:
+  dataset_root: "/kaggle/input/nd-twin/ND_TWIN_Dataset_224/ND_TWIN_Dataset_224"
+  train_info: "data/train_dataset_infor.json"
+  train_pairs: "data/train_twin_pairs.json"
+  test_info: "data/test_dataset_infor.json"
+  test_pairs: "data/test_twin_pairs.json"
+  
+  # Data augmentation
+  augmentation:
+    horizontal_flip: 0.5
+    rotation: 15
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    gaussian_blur: 0.1
+    random_erasing: 0.25
+  
+  # Image preprocessing
+  image_size: 224
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  
+  # Data loading - Kaggle optimized
+  batch_size: 16
+  num_workers: 2
+  pin_memory: true
+
+training:
+  # Optimizer
+  optimizer: "adam"
+  learning_rate: 0.0005  # Start with current working LR
+  weight_decay: 0.05
+  
+  # Scheduler - reduce LR for fine-tuning with GLCA
+  scheduler: "cosine"
+  warmup_epochs: 3
+  
+  # Training parameters
+  epochs: 100           # Increase epochs for GLCA training
+  accumulation_steps: 1
+  gradient_clip: 1.0
+  
+  # Loss configuration
+  loss_type: "triplet"
+  triplet_margin: 0.3
+  hard_mining: true
+  
+  # Dynamic loss weights (important for GLCA)
+  use_dynamic_weights: true
+  
+  # Checkpointing
+  save_every: 5
+  keep_last: 5
+
+evaluation:
+  metrics:
+    - "eer"
+    - "tar_at_far"
+  far_thresholds: [0.001, 0.01, 0.1]
+  
+  # Test-time augmentation
+  use_tta: false
+  tta_crops: 5
+
+tracking:
+  backend: "wandb"
+  project_name: "twin_dcal_kaggle"
+  experiment_name: "glca_enabled"  # Updated experiment name
+  
+  wandb:
+    entity: null
+    tags: ["kaggle", "glca", "deit_tiny"]
+    notes: "DCAL training with GLCA enabled"
+
+# Advanced features
+advanced:
+  ensemble:
+    enabled: false
+  
+  hpo:
+    enabled: false
+  
+  profiling:
+    enabled: false

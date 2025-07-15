@@ -182,18 +182,39 @@ class DCALModel(nn.Module):
         
         for i, block in enumerate(self.blocks):
             try:
+                # Collect attention BEFORE processing (for current and future GLCA layers)
+                current_sa_attn = None
+                if (return_attention or any(j in self.glca_layers for j in range(i, len(self.blocks)))):
+                    try:
+                        _, current_sa_attn = block.self_attn(block.norm1(sa_output), return_attention=True)
+                        if current_sa_attn is not None:
+                            sa_attentions.append(current_sa_attn)
+                    except:
+                        # If attention collection fails, continue without it
+                        pass
+                
                 # Self-attention branch (always present)
                 sa_residual = block.self_attn(block.norm1(sa_output))
                 sa_output = sa_output + sa_residual
                 sa_output = sa_output + block.mlp(block.norm2(sa_output))
                 
-                # GLCA branch (if enabled for this layer and we have accumulated attention)
+                # GLCA branch (if enabled for this layer)
                 glca_out = None
-                if (hasattr(block, 'use_glca') and block.use_glca and 
-                    i in self.glca_layers and sa_attentions):
+                if (hasattr(block, 'use_glca') and block.use_glca and i in self.glca_layers):
                     try:
-                        glca_residual = block.glca(block.norm_glca(x), sa_attentions)
-                        glca_out = x + glca_residual
+                        if sa_attentions:
+                            # Use accumulated attention from previous layers
+                            glca_residual = block.glca(block.norm_glca(sa_output), sa_attentions)
+                        else:
+                            # If no attention available, use current attention only
+                            temp_attentions = [current_sa_attn] if current_sa_attn is not None else []
+                            if temp_attentions:
+                                glca_residual = block.glca(block.norm_glca(sa_output), temp_attentions)
+                            else:
+                                print(f"Warning: No attention available for GLCA in layer {i}")
+                                glca_residual = torch.zeros_like(sa_output)
+                        
+                        glca_out = sa_output + glca_residual
                         glca_out = glca_out + block.mlp(block.norm2(glca_out))
                         glca_output = glca_out
                     except Exception as e:
@@ -211,16 +232,6 @@ class DCALModel(nn.Module):
                         sa_output = pwca_out
                     except Exception as e:
                         print(f"Warning: PWCA failed in layer {i}, skipping: {e}")
-                
-                # Collect attention for future GLCA layers (if needed)
-                if (return_attention or any(j in self.glca_layers for j in range(i+1, len(self.blocks)))):
-                    try:
-                        _, sa_attn = block.self_attn(block.norm1(x), return_attention=True)
-                        if sa_attn is not None:
-                            sa_attentions.append(sa_attn)
-                    except:
-                        # If attention collection fails, continue without it
-                        pass
                         
             except Exception as e:
                 print(f"Error in block {i}: {e}")
